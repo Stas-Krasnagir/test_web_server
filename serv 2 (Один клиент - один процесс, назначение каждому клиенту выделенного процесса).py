@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import socket
 import time
@@ -11,11 +12,25 @@ def run_server(port=53210):
         client_sock = accept_client_conn(serv_sock, cid)
         child_pid = serve_client(client_sock, cid)
         active_children.add(child_pid)
-        reap_children(active_children)
+        #reap_children(active_children)
         cid += 1
 
 
+def worker(client_sock, cid):
+    request = read_request(client_sock)
+    if request is None:
+        print(f'Client #{cid} unexpectedly disconnected')
+    else:
+        response = handle_request(request)
+        write_response(client_sock, response, cid)
+
+
 def serve_client(client_sock, cid):
+    p = multiprocessing.Process(target=worker(client_sock, cid))
+    p.start()
+    p.join()
+
+    """
     child_pid = os.fork()
     if child_pid:
         # Родительский процесс, не делаем ничего
@@ -28,6 +43,7 @@ def serve_client(client_sock, cid):
     #  - записываем ответ
     #  - закрываем сокет
     #  - завершаем процесс (os._exit())
+    
     request = read_request(client_sock)
     if request is None:
         print(f'Client #{cid} unexpectedly disconnected')
@@ -35,7 +51,7 @@ def serve_client(client_sock, cid):
         response = handle_request(request)
         write_response(client_sock, response, cid)
     os._exit(0)
-
+    """
 
 def reap_children(active_children):
     for child_pid in active_children.copy():
@@ -70,7 +86,7 @@ def read_request(client_sock):
                 return None
 
             request += chunk
-            return request[::-1]
+            return request
 
     except ConnectionResetError:
         # Соединение было неожиданно разорвано.
@@ -80,7 +96,7 @@ def read_request(client_sock):
 
 
 def handle_request(request):
-    time.sleep(1)
+    time.sleep(10)
     return request[::-1]
 
 
