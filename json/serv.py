@@ -17,6 +17,6 @@ while True:
         if not data:
             # Клиент отключился
             break
-        client_sock.sendall(data[::-1].encode())
+        client_sock.sendall(data.encode())
 
     client_sock.close()
